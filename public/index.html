@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lista de Compras - PWA</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/icon-192x192.png" />
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/service-worker.js")
+            .then((registration) => {
+              console.log("Service Worker registrado con éxito:", registration);
+            })
+            .catch((error) => {
+              console.log("Error al registrar el Service Worker:", error);
+            });
+        });
+      }
+
+      // Función para obtener todos los items de la lista de compras
+      async function fetchItems() {
+        const response = await fetch("/items");
+        const items = await response.json();
+        const list = document.getElementById("item-list");
+        list.innerHTML = "";
+        items.forEach((item) => {
+          const li = document.createElement("li");
+          li.innerHTML = `${item.name} - ${item.quantity} 
+        <button onclick="editItem(${item.id})">Editar</button>
+        <button onclick="deleteItem(${item.id})">Eliminar</button>`;
+          list.appendChild(li);
+        });
+      }
+
+      // Función para agregar un nuevo item
+      async function addItem() {
+        const name = document.getElementById("item-name").value;
+        const quantity = document.getElementById("item-quantity").value;
+        const response = await fetch("/items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, quantity }),
+        });
+        const newItem = await response.json();
+        fetchItems(); // Recargar los items después de agregar uno nuevo
+      }
+
+      // Función para editar un item
+      async function editItem(id) {
+        const name = prompt("Nuevo nombre del producto:");
+        const quantity = prompt("Nueva cantidad:");
+        const response = await fetch(`/items/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, quantity }),
+        });
+        const updatedItem = await response.json();
+        fetchItems(); // Recargar los items después de editar uno
+      }
+
+      // Función para eliminar un item
+      async function deleteItem(id) {
+        await fetch(`/items/${id}`, {
+          method: "DELETE",
+        });
+        fetchItems(); // Recargar los items después de eliminar uno
+      }
+
+      window.onload = fetchItems;
+    </script>
+  </head>
+  <body>
+    <h1>Lista de Compras</h1>
+
+    <!-- Formulario para agregar un nuevo item -->
+    <form onsubmit="event.preventDefault(); addItem();">
+      <input
+        type="text"
+        id="item-name"
+        placeholder="Nombre del producto"
+        required
+      />
+      <input type="number" id="item-quantity" placeholder="Cantidad" required />
+      <button type="submit">Agregar Item</button>
+    </form>
+
+    <button id="sendNotification">Notificación General</button>
+
+    <script src="main.js"></script>
+
+    <!-- Lista de items -->
+    <ul id="item-list"></ul>
+  </body>
+</html>
